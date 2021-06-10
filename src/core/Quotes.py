@@ -1,5 +1,3 @@
-import logging
-
 from core.Controller import Controller
 from models.Quote import Quote
 
@@ -44,3 +42,21 @@ class Quotes:
       return quote.lastTradedPrice
     else:
       return 0
+
+  @staticmethod
+  def getStrikePrice(tradingSymbol):
+    broker = Controller.getBrokerName()
+    brokerHandle = Controller.getBrokerLogin().getBrokerHandle()
+    quote = None
+    if broker == "zerodha":
+      key = 'NSE:' + tradingSymbol
+      bQuoteResp = brokerHandle.quote(key)
+      quote = bQuoteResp[key]
+      if quote:
+        return quote['last_price']
+      else:
+        return 0
+    else:
+      # The logic may be different for other brokers
+      quote = None
+    return quote

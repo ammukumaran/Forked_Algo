@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from math import floor
 
+from core.Quotes import Quotes
 from instruments.Instruments import Instruments
 from models.Direction import Direction
 from models.ProductType import ProductType
@@ -69,12 +70,16 @@ class ShortStraddleStrangleBNF(BaseStrategy):
         quote = self.getQuote(futureSymbol)
         # quote = self.getQuote('NIFTY BANK') # Taken SPOT Price for ATM
         # quote = Quotes.getQuote("NIFTY BANK",False) # Taken SPOT Price for ATM False for NSE True for NFO
+        quote = Quotes.getStrikePrice(futureSymbol)
         if quote == None:
             logging.error('%s: Could not get quote for %s', self.getName(), futureSymbol)
             return
 
-        ATMStrike = Utils.getNearestStrikePrice(quote.lastTradedPrice, 100)
-        logging.info('%s: Nifty CMP = %f, ATMStrike = %d', self.getName(), quote.lastTradedPrice, ATMStrike)
+        # ATMStrike = Utils.getNearestStrikePrice(quote.lastTradedPrice, 100)
+        # logging.info('%s: Nifty CMP = %f, ATMStrike = %d', self.getName(), quote.lastTradedPrice, ATMStrike)
+
+        ATMStrike = Utils.getNearestStrikePrice(quote, 100)
+        logging.info('%s: %s = %f, ATMStrike = %d', self.getName(), futureSymbol, quote, ATMStrike)
 
         ATMCESymbol = Utils.prepareWeeklyOptionsSymbol("BANKNIFTY", ATMStrike, 'CE')
         ATMPESymbol = Utils.prepareWeeklyOptionsSymbol("BANKNIFTY", ATMStrike, 'PE')
