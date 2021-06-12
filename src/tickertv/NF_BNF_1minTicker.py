@@ -10,7 +10,7 @@ from config.Config import getTVloginConfig
 from utils.Utils import Utils
 
 
-# nse_list = pd.read_csv("ind_nifty500list.csv")
+# nse_list = pd.read_csv("ind_nifty100list.csv")
 # print(nse_list)
 class indexTicker:
     @staticmethod

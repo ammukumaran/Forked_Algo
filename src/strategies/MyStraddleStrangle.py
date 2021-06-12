@@ -70,7 +70,7 @@ class ShortStraddleStrangleBNF(BaseStrategy):
         quote = self.getQuote(futureSymbol)
         # quote = self.getQuote('NIFTY BANK') # Taken SPOT Price for ATM
         # quote = Quotes.getQuote("NIFTY BANK",False) # Taken SPOT Price for ATM False for NSE True for NFO
-        quote = Quotes.getStrikePrice(futureSymbol)
+        quote = Quotes.getStrikePrice("NIFTY BANK")
         if quote == None:
             logging.error('%s: Could not get quote for %s', self.getName(), futureSymbol)
             return
@@ -92,6 +92,7 @@ class ShortStraddleStrangleBNF(BaseStrategy):
         # create trades
         self.generateATMtrades(ATMCESymbol, ATMPESymbol)
         self.generateOTMtrades(OTMCESymbol, OTMPESymbol)
+        Utils.sendMessageTelegramBot("BNF Straddle Strangle Strategy Entered...")
 
     def generateATMtrades(self, ATMCESymbol, ATMPESymbol):
         numLots = self.calculateLotsPerTrade()

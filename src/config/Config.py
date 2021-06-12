@@ -11,15 +11,24 @@ def getSystemConfig():
     jsonSystemData = json.load(system)
     return jsonSystemData
 
+
 def getBrokerAppConfig():
   with open('../config/brokerapp.json', 'r') as brokerapp:
     jsonUserData = json.load(brokerapp)
     return jsonUserData
 
+
+def getTelegramAppConfig():
+  with open('../config/telegram.json', 'r') as telegramapp:
+    jsonUserData = json.load(telegramapp)
+    return jsonUserData
+
+
 def getHolidays():
   with open('../config/holidays.json', 'r') as holidays:
     holidaysData = json.load(holidays)
     return holidaysData
+
 
 def getTimestampsData():
   serverConfig = getServerConfig()

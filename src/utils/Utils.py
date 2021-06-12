@@ -7,284 +7,308 @@ import uuid
 from datetime import datetime, timedelta
 
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
 from json2html import *
 
 from config.Config import getHolidays
 from config.Config import getServerConfig
+from config.Config import getTelegramAppConfig
 from models.Direction import Direction
 from trademgmt.TradeState import TradeState
 
 
 class Utils:
-  dateFormat = "%Y-%m-%d"
-  timeFormat = "%H:%M:%S"
-  dateTimeFormat = "%Y-%m-%d %H:%M:%S"
+    dateFormat = "%Y-%m-%d"
+    timeFormat = "%H:%M:%S"
+    dateTimeFormat = "%Y-%m-%d %H:%M:%S"
 
-  @staticmethod
-  def roundOff(price): # Round off to 2 decimal places
-    return round(price, 2)
-    
-  @staticmethod
-  def roundToNSEPrice(price):
-    x = round(price, 2) * 20
-    y = math.ceil(x)
-    return y / 20
+    @staticmethod
+    def roundOff(price):  # Round off to 2 decimal places
+        return round(price, 2)
 
-  @staticmethod
-  def isMarketOpen():
-    if Utils.isTodayHoliday():
-      return False
-    now = datetime.now()
-    marketStartTime = Utils.getMarketStartTime()
-    marketEndTime = Utils.getMarketEndTime()
-    return now >= marketStartTime and now <= marketEndTime
+    @staticmethod
+    def roundToNSEPrice(price):
+        x = round(price, 2) * 20
+        y = math.ceil(x)
+        return y / 20
 
-  @staticmethod
-  def isMarketClosedForTheDay():
-    # This method returns true if the current time is > marketEndTime
-    # Please note this will not return true if current time is < marketStartTime on a trading day
-    if Utils.isTodayHoliday():
-      return True
-    now = datetime.now()
-    marketEndTime = Utils.getMarketEndTime()
-    return now > marketEndTime
+    @staticmethod
+    def isMarketOpen():
+        if Utils.isTodayHoliday():
+            return False
+        now = datetime.now()
+        marketStartTime = Utils.getMarketStartTime()
+        marketEndTime = Utils.getMarketEndTime()
+        return now >= marketStartTime and now <= marketEndTime
 
-  @staticmethod
-  def waitTillMarketOpens(context):
-    nowEpoch = Utils.getEpoch(datetime.now())
-    marketStartTimeEpoch = Utils.getEpoch(Utils.getMarketStartTime())
-    waitSeconds = marketStartTimeEpoch - nowEpoch
-    if waitSeconds > 0:
-      logging.info("%s: Waiting for %d seconds till market opens...", context, waitSeconds)
-      time.sleep(waitSeconds)
+    @staticmethod
+    def isMarketClosedForTheDay():
+        # This method returns true if the current time is > marketEndTime
+        # Please note this will not return true if current time is < marketStartTime on a trading day
+        if Utils.isTodayHoliday():
+            return True
+        now = datetime.now()
+        marketEndTime = Utils.getMarketEndTime()
+        return now > marketEndTime
 
-  @staticmethod
-  def getEpoch(datetimeObj = None):
-    # This method converts given datetimeObj to epoch seconds
-    if datetimeObj == None:
-      datetimeObj = datetime.now()
-    epochSeconds = datetime.timestamp(datetimeObj)
-    return int(epochSeconds) # converting double to long
+    @staticmethod
+    def waitTillMarketOpens(context):
+        nowEpoch = Utils.getEpoch(datetime.now())
+        marketStartTimeEpoch = Utils.getEpoch(Utils.getMarketStartTime())
+        waitSeconds = marketStartTimeEpoch - nowEpoch
+        if waitSeconds > 0:
+            logging.info("%s: Waiting for %d seconds till market opens...", context, waitSeconds)
+            time.sleep(waitSeconds)
 
-  @staticmethod
-  def getMarketStartTime(dateTimeObj = None):
-    return Utils.getTimeOfDay(9, 15, 0, dateTimeObj)
+    @staticmethod
+    def getEpoch(datetimeObj=None):
+        # This method converts given datetimeObj to epoch seconds
+        if datetimeObj == None:
+            datetimeObj = datetime.now()
+        epochSeconds = datetime.timestamp(datetimeObj)
+        return int(epochSeconds)  # converting double to long
 
-  @staticmethod
-  def getMarketEndTime(dateTimeObj = None):
-    return Utils.getTimeOfDay(15, 30, 0, dateTimeObj)
+    @staticmethod
+    def getMarketStartTime(dateTimeObj=None):
+        return Utils.getTimeOfDay(9, 15, 0, dateTimeObj)
 
-  @staticmethod
-  def getTimeOfDay(hours, minutes, seconds, dateTimeObj = None):
-    if dateTimeObj == None:
-      dateTimeObj = datetime.now()
-    dateTimeObj = dateTimeObj.replace(hour=hours, minute=minutes, second=seconds, microsecond=0)
-    return dateTimeObj
+    @staticmethod
+    def getMarketEndTime(dateTimeObj=None):
+        return Utils.getTimeOfDay(15, 30, 0, dateTimeObj)
 
-  @staticmethod
-  def getTimeOfToDay(hours, minutes, seconds):
-    return Utils.getTimeOfDay(hours, minutes, seconds, datetime.now())
+    @staticmethod
+    def getTimeOfDay(hours, minutes, seconds, dateTimeObj=None):
+        if dateTimeObj == None:
+            dateTimeObj = datetime.now()
+        dateTimeObj = dateTimeObj.replace(hour=hours, minute=minutes, second=seconds, microsecond=0)
+        return dateTimeObj
 
-  @staticmethod
-  def getTodayDateStr():
-    return Utils.convertToDateStr(datetime.now())
+    @staticmethod
+    def getTimeOfToDay(hours, minutes, seconds):
+        return Utils.getTimeOfDay(hours, minutes, seconds, datetime.now())
 
-  @staticmethod
-  def convertToDateStr(datetimeObj):
-    return datetimeObj.strftime(Utils.dateFormat)
+    @staticmethod
+    def getTodayDateStr():
+        return Utils.convertToDateStr(datetime.now())
 
-  @staticmethod
-  def isHoliday(datetimeObj):
-    dayOfWeek = calendar.day_name[datetimeObj.weekday()]
-    if dayOfWeek == 'Saturday' or dayOfWeek == 'Sunday':
-      return True
+    @staticmethod
+    def convertToDateStr(datetimeObj):
+        return datetimeObj.strftime(Utils.dateFormat)
 
-    dateStr = Utils.convertToDateStr(datetimeObj)
-    holidays = getHolidays()
-    if (dateStr in holidays):
-      return True
-    else:
-      return False
+    @staticmethod
+    def isHoliday(datetimeObj):
+        dayOfWeek = calendar.day_name[datetimeObj.weekday()]
+        if dayOfWeek == 'Saturday' or dayOfWeek == 'Sunday':
+            return True
 
-  @staticmethod
-  def isTodayHoliday():
-    return Utils.isHoliday(datetime.now())
-    
-  @staticmethod
-  def generateTradeID():
-    return str(uuid.uuid4())
+        dateStr = Utils.convertToDateStr(datetimeObj)
+        holidays = getHolidays()
+        if (dateStr in holidays):
+            return True
+        else:
+            return False
 
-  @staticmethod
-  def calculateTradePnl(trade):
-    if trade.tradeState == TradeState.ACTIVE:
-      if trade.cmp > 0:
-        if trade.direction == Direction.LONG:
-          trade.pnl = Utils.roundOff(trade.filledQty * (trade.cmp - trade.entry))
-        else:  
-          trade.pnl = Utils.roundOff(trade.filledQty * (trade.entry - trade.cmp))
-    else:
-      if trade.exit > 0:
-        if trade.direction == Direction.LONG:
-          trade.pnl = Utils.roundOff(trade.filledQty * (trade.exit - trade.entry))
-        else:  
-          trade.pnl = Utils.roundOff(trade.filledQty * (trade.entry - trade.exit))
-    tradeValue = trade.entry * trade.filledQty
-    if tradeValue > 0:
-      trade.pnlPercentage = Utils.roundOff(trade.pnl * 100 / tradeValue)
-    return trade
+    @staticmethod
+    def isTodayHoliday():
+        return Utils.isHoliday(datetime.now())
 
-  @staticmethod
-  def prepareMonthlyExpiryFuturesSymbol(inputSymbol):
-    expiryDateTime = Utils.getMonthlyExpiryDayDate()
-    expiryDateMarketEndTime = Utils.getMarketEndTime(expiryDateTime)
-    now = datetime.now()
-    if now > expiryDateMarketEndTime:
-      # increasing today date by 20 days to get some day in next month passing to getMonthlyExpiryDayDate()
-      expiryDateTime = Utils.getMonthlyExpiryDayDate(now + timedelta(days=20))
-    year2Digits = str(expiryDateTime.year)[2:]
-    monthShort = calendar.month_name[expiryDateTime.month].upper()[0:3]
-    futureSymbol = inputSymbol + year2Digits + monthShort + 'FUT'
-    logging.info('prepareMonthlyExpiryFuturesSymbol[%s] = %s', inputSymbol, futureSymbol)  
-    return futureSymbol
+    @staticmethod
+    def generateTradeID():
+        return str(uuid.uuid4())
 
-  @staticmethod
-  def prepareWeeklyOptionsSymbol(inputSymbol, strike, optionType, numWeeksPlus = 0):
-    expiryDateTime = Utils.getWeeklyExpiryDayDate()
-    todayMarketStartTime = Utils.getMarketStartTime()
-    expiryDayMarketEndTime = Utils.getMarketEndTime(expiryDateTime)
-    if numWeeksPlus > 0:
-      expiryDateTime = expiryDateTime + timedelta(days=numWeeksPlus * 7)
-      expiryDateTime = Utils.getWeeklyExpiryDayDate(expiryDateTime)
-    if todayMarketStartTime > expiryDayMarketEndTime:
-      expiryDateTime = expiryDateTime + timedelta(days=6)
-      expiryDateTime = Utils.getWeeklyExpiryDayDate(expiryDateTime)
-    # Check if monthly and weekly expiry same
-    expiryDateTimeMonthly = Utils.getMonthlyExpiryDayDate()
-    weekAndMonthExpriySame = False
-    if expiryDateTime == expiryDateTimeMonthly:
-      weekAndMonthExpriySame = True
-      logging.info('Weekly and Monthly expiry is same for %s', expiryDateTime)
-    year2Digits = str(expiryDateTime.year)[2:]
-    optionSymbol = None
-    if weekAndMonthExpriySame == True:
-      monthShort = calendar.month_name[expiryDateTime.month].upper()[0:3]
-      optionSymbol = inputSymbol + str(year2Digits) + monthShort + str(strike) + optionType.upper()
-    else:
-      m = expiryDateTime.month
-      d = expiryDateTime.day
-      mStr = str(m)
-      if m == 10:
-        mStr = "O"
-      elif m == 11:
-        mStr = "N"
-      elif m == 12:
-        mStr = "D"
-      dStr = ("0" + str(d)) if d < 10 else str(d)
-      optionSymbol = inputSymbol + str(year2Digits) + mStr + dStr + str(strike) + optionType.upper()
-    logging.info('prepareWeeklyOptionsSymbol[%s, %d, %s, %d] = %s', inputSymbol, strike, optionType, numWeeksPlus, optionSymbol)  
-    return optionSymbol
+    @staticmethod
+    def calculateTradePnl(trade):
+        if trade.tradeState == TradeState.ACTIVE:
+            if trade.cmp > 0:
+                if trade.direction == Direction.LONG:
+                    trade.pnl = Utils.roundOff(trade.filledQty * (trade.cmp - trade.entry))
+                else:
+                    trade.pnl = Utils.roundOff(trade.filledQty * (trade.entry - trade.cmp))
+        else:
+            if trade.exit > 0:
+                if trade.direction == Direction.LONG:
+                    trade.pnl = Utils.roundOff(trade.filledQty * (trade.exit - trade.entry))
+                else:
+                    trade.pnl = Utils.roundOff(trade.filledQty * (trade.entry - trade.exit))
+        tradeValue = trade.entry * trade.filledQty
+        if tradeValue > 0:
+            trade.pnlPercentage = Utils.roundOff(trade.pnl * 100 / tradeValue)
+        return trade
 
-  @staticmethod
-  def getMonthlyExpiryDayDate(datetimeObj = None):
-    if datetimeObj == None:
-      datetimeObj = datetime.now()
-    year = datetimeObj.year
-    month = datetimeObj.month
-    lastDay = calendar.monthrange(year, month)[1] # 2nd entry is the last day of the month
-    datetimeExpiryDay = datetime(year, month, lastDay)
-    while calendar.day_name[datetimeExpiryDay.weekday()] != 'Thursday':
-      datetimeExpiryDay = datetimeExpiryDay - timedelta(days=1)
-    while Utils.isHoliday(datetimeExpiryDay) == True:
-      datetimeExpiryDay = datetimeExpiryDay - timedelta(days=1)
+    @staticmethod
+    def prepareMonthlyExpiryFuturesSymbol(inputSymbol):
+        expiryDateTime = Utils.getMonthlyExpiryDayDate()
+        expiryDateMarketEndTime = Utils.getMarketEndTime(expiryDateTime)
+        now = datetime.now()
+        if now > expiryDateMarketEndTime:
+            # increasing today date by 20 days to get some day in next month passing to getMonthlyExpiryDayDate()
+            expiryDateTime = Utils.getMonthlyExpiryDayDate(now + timedelta(days=20))
+        year2Digits = str(expiryDateTime.year)[2:]
+        monthShort = calendar.month_name[expiryDateTime.month].upper()[0:3]
+        futureSymbol = inputSymbol + year2Digits + monthShort + 'FUT'
+        logging.info('prepareMonthlyExpiryFuturesSymbol[%s] = %s', inputSymbol, futureSymbol)
+        return futureSymbol
 
-    datetimeExpiryDay = Utils.getTimeOfDay(0, 0, 0, datetimeExpiryDay)
-    return datetimeExpiryDay
+    @staticmethod
+    def prepareWeeklyOptionsSymbol(inputSymbol, strike, optionType, numWeeksPlus=0):
+        expiryDateTime = Utils.getWeeklyExpiryDayDate()
+        todayMarketStartTime = Utils.getMarketStartTime()
+        expiryDayMarketEndTime = Utils.getMarketEndTime(expiryDateTime)
+        if numWeeksPlus > 0:
+            expiryDateTime = expiryDateTime + timedelta(days=numWeeksPlus * 7)
+            expiryDateTime = Utils.getWeeklyExpiryDayDate(expiryDateTime)
+        if todayMarketStartTime > expiryDayMarketEndTime:
+            expiryDateTime = expiryDateTime + timedelta(days=6)
+            expiryDateTime = Utils.getWeeklyExpiryDayDate(expiryDateTime)
+        # Check if monthly and weekly expiry same
+        expiryDateTimeMonthly = Utils.getMonthlyExpiryDayDate()
+        weekAndMonthExpriySame = False
+        if expiryDateTime == expiryDateTimeMonthly:
+            weekAndMonthExpriySame = True
+            logging.info('Weekly and Monthly expiry is same for %s', expiryDateTime)
+        year2Digits = str(expiryDateTime.year)[2:]
+        optionSymbol = None
+        if weekAndMonthExpriySame == True:
+            monthShort = calendar.month_name[expiryDateTime.month].upper()[0:3]
+            optionSymbol = inputSymbol + str(year2Digits) + monthShort + str(strike) + optionType.upper()
+        else:
+            m = expiryDateTime.month
+            d = expiryDateTime.day
+            mStr = str(m)
+            if m == 10:
+                mStr = "O"
+            elif m == 11:
+                mStr = "N"
+            elif m == 12:
+                mStr = "D"
+            dStr = ("0" + str(d)) if d < 10 else str(d)
+            optionSymbol = inputSymbol + str(year2Digits) + mStr + dStr + str(strike) + optionType.upper()
+        logging.info('prepareWeeklyOptionsSymbol[%s, %d, %s, %d] = %s', inputSymbol, strike, optionType, numWeeksPlus,
+                     optionSymbol)
+        return optionSymbol
 
-  @staticmethod
-  def getWeeklyExpiryDayDate(dateTimeObj = None):
-    if dateTimeObj == None:
-      dateTimeObj = datetime.now()
-    daysToAdd = 0
-    if dateTimeObj.weekday() >= 3:
-      daysToAdd = -1 * (dateTimeObj.weekday() - 3)
-    else:
-      daysToAdd = 3 - dateTimeObj.weekday()
-    datetimeExpiryDay = dateTimeObj + timedelta(days=daysToAdd)
-    while Utils.isHoliday(datetimeExpiryDay) == True:
-      datetimeExpiryDay = datetimeExpiryDay - timedelta(days=1)
+    @staticmethod
+    def getMonthlyExpiryDayDate(datetimeObj=None):
+        if datetimeObj == None:
+            datetimeObj = datetime.now()
+        year = datetimeObj.year
+        month = datetimeObj.month
+        lastDay = calendar.monthrange(year, month)[1]  # 2nd entry is the last day of the month
+        datetimeExpiryDay = datetime(year, month, lastDay)
+        while calendar.day_name[datetimeExpiryDay.weekday()] != 'Thursday':
+            datetimeExpiryDay = datetimeExpiryDay - timedelta(days=1)
+        while Utils.isHoliday(datetimeExpiryDay) == True:
+            datetimeExpiryDay = datetimeExpiryDay - timedelta(days=1)
 
-    datetimeExpiryDay = Utils.getTimeOfDay(0, 0, 0, datetimeExpiryDay)
-    return datetimeExpiryDay
+        datetimeExpiryDay = Utils.getTimeOfDay(0, 0, 0, datetimeExpiryDay)
+        return datetimeExpiryDay
 
-  @staticmethod
-  def isTodayWeeklyExpiryDay():
-    expiryDate = Utils.getWeeklyExpiryDayDate()
-    todayDate = Utils.getTimeOfToDay(0, 0, 0)
-    if expiryDate == todayDate:
-      return True
-    return False
+    @staticmethod
+    def getWeeklyExpiryDayDate(dateTimeObj=None):
+        if dateTimeObj == None:
+            dateTimeObj = datetime.now()
+        daysToAdd = 0
+        if dateTimeObj.weekday() >= 3:
+            daysToAdd = -1 * (dateTimeObj.weekday() - 3)
+        else:
+            daysToAdd = 3 - dateTimeObj.weekday()
+        datetimeExpiryDay = dateTimeObj + timedelta(days=daysToAdd)
+        while Utils.isHoliday(datetimeExpiryDay) == True:
+            datetimeExpiryDay = datetimeExpiryDay - timedelta(days=1)
 
-  @staticmethod
-  def isTodayOneDayBeforeWeeklyExpiryDay():
-    expiryDate = Utils.getWeeklyExpiryDayDate()
-    todayDate = Utils.getTimeOfToDay(0, 0, 0)
-    if expiryDate - timedelta(days=1) == todayDate:
-      return True  
-    return False
+        datetimeExpiryDay = Utils.getTimeOfDay(0, 0, 0, datetimeExpiryDay)
+        return datetimeExpiryDay
 
-  @staticmethod
-  def getNearestStrikePrice(price, nearestMultiple = 50):
-    inputPrice = int(price)
-    remainder = int(inputPrice % nearestMultiple)
-    if remainder < int(nearestMultiple / 2):
-      return inputPrice - remainder
-    else:
-      return inputPrice + (nearestMultiple - remainder)
+    @staticmethod
+    def isTodayWeeklyExpiryDay():
+        expiryDate = Utils.getWeeklyExpiryDayDate()
+        todayDate = Utils.getTimeOfToDay(0, 0, 0)
+        if expiryDate == todayDate:
+            return True
+        return False
 
-  @staticmethod
-  def htmlSummaryUpdate():
-    # check and create trades directory for today`s date
-    serverConfig = getServerConfig()
-    tradesDir = os.path.join(serverConfig['deployDir'], 'trades')
-    intradayTradesDir = os.path.join(tradesDir, Utils.getTodayDateStr())
-    tradesFilepath = os.path.join(intradayTradesDir, 'trades.json')
-    # Opening JSON file
-    datapd = pd.read_json(tradesFilepath, 'r')
-    if (not (datapd.empty)):
-      datasummary = datapd[
-        ['tradingSymbol', "direction", "qty", 'entry', "initialStopLoss", "stopLoss", "cmp", "pnl", "pnlPercentage",
-         "exit", "exitReason", "tradeState", "strategyCurrentPNL", "strategySL"]]
-      # Get indexes where name column has value john
-      indexNames = datasummary[datasummary['tradeState'] == 'disabled'].index
-      # Delete these row indexes from dataFrame
-      datasummary.drop(indexNames, inplace=True)
+    @staticmethod
+    def isTodayOneDayBeforeWeeklyExpiryDay():
+        expiryDate = Utils.getWeeklyExpiryDayDate()
+        todayDate = Utils.getTimeOfToDay(0, 0, 0)
+        if expiryDate - timedelta(days=1) == todayDate:
+            return True
+        return False
 
+    @staticmethod
+    def getNearestStrikePrice(price, nearestMultiple=50):
+        inputPrice = int(price)
+        remainder = int(inputPrice % nearestMultiple)
+        if remainder < int(nearestMultiple / 2):
+            return inputPrice - remainder
+        else:
+            return inputPrice + (nearestMultiple - remainder)
 
-      dataEntry = datapd['entryOrder']
-      dataEntry = dataEntry.dropna()
-      # dataEntry = pd.to_datetime(dataEntry['orderPlaceTimestamp'], unit='s')
-      dataSL = datapd['slOrder']
-      dataSL = dataSL.dropna()
-      # dataSL = pd.to_datetime(dataSL['orderPlaceTimestamp'], unit='s')
+    @staticmethod
+    def htmlSummaryUpdate():
+        # check and create trades directory for today`s date
+        serverConfig = getServerConfig()
+        tradesDir = os.path.join(serverConfig['deployDir'], 'trades')
+        intradayTradesDir = os.path.join(tradesDir, Utils.getTodayDateStr())
+        tradesFilepath = os.path.join(intradayTradesDir, 'trades.json')
+        # Opening JSON file
+        datapd = pd.read_json(tradesFilepath, 'r')
+        if (not (datapd.empty)):
+            datasummary = datapd[
+                ['tradingSymbol', "direction", "qty", 'entry', "initialStopLoss", "stopLoss", "cmp", "pnl",
+                 "pnlPercentage",
+                 "exit", "exitReason", "tradeState", "strategyCurrentPNL", "strategySL"]]
+            # Get indexes where name column has value john
+            indexNames = datasummary[datasummary['tradeState'] == 'disabled'].index
+            # Delete these row indexes from dataFrame
+            datasummary.drop(indexNames, inplace=True)
 
-      datasummary = datasummary.to_json(orient="records")
-      dataEntry = dataEntry.to_json(orient="records")
-      dataSL = dataSL.to_json(orient="records")
+            dataEntry = datapd['entryOrder']
+            dataEntry = dataEntry.dropna()
+            # dataEntry = pd.to_datetime(dataEntry['orderPlaceTimestamp'], unit='s')
+            dataSL = datapd['slOrder']
+            dataSL = dataSL.dropna()
+            # dataSL = pd.to_datetime(dataSL['orderPlaceTimestamp'], unit='s')
 
-      body = (json2html.convert(json=datasummary))
-      body1 = (json2html.convert(json=dataEntry))
-      body2 = (json2html.convert(json=dataSL))
+            # telegram update 30 secs
+            code_html = '*Position Update*'
+            if datasummary.empty == False:
+                for i in range(len(datasummary)):
+                    code_html = code_html + '\n\n tradingSymbol:' + str(
+                        (datasummary['tradingSymbol'].iloc[i])) + '\n tradeState: ' + str(
+                        (datasummary['tradeState'].iloc[i])) + '\n pnl: ' + str(
+                        (datasummary['pnl'].iloc[i])) + '\n exitReason: ' + str(
+                        (datasummary['exitReason'].iloc[i]))
+            Utils.sendMessageTelegramBot(code_html)
 
-      # Open test.html for reading
-      with open('../src/templates/StraddleStrangle.html') as html_file:
-        soup = BeautifulSoup(html_file.read(), features='html.parser')
-        soup.table.replace_with(body);
-        soup.table.replace_with(body1);
-        soup.table.replace_with(body2);
-        # Store prettified version of modified html
-        new_text = soup.prettify(formatter=None)
+            datasummary = datasummary.to_json(orient="records")
+            dataEntry = dataEntry.to_json(orient="records")
+            dataSL = dataSL.to_json(orient="records")
 
-      # Write new contents to test.html
-      with open('../src/templates/StraddleStrangle.html', mode='w') as new_html_file:
-        new_html_file.write(new_text)
+            body = (json2html.convert(json=datasummary))
+            body1 = (json2html.convert(json=dataEntry))
+            body2 = (json2html.convert(json=dataSL))
+
+            # Open test.html for reading
+            with open('../src/templates/StraddleStrangle.html') as html_file:
+                soup = BeautifulSoup(html_file.read(), features='html.parser')
+                soup.table.replace_with(body);
+                soup.table.replace_with(body1);
+                soup.table.replace_with(body2);
+                # Store prettified version of modified html
+                new_text = soup.prettify(formatter=None)
+
+            # Write new contents to test.html
+            with open('../src/templates/StraddleStrangle.html', mode='w') as new_html_file:
+                new_html_file.write(new_text)
+
+    @staticmethod
+    def sendMessageTelegramBot(message):
+        try:
+            telegramAppConfig = getTelegramAppConfig()
+            urlReq = "https://api.telegram.org/bot" + telegramAppConfig['bot_token'] + "/sendMessage" + "?chat_id=" + \
+                     telegramAppConfig['bot_chat_id'] + "&text=" + message
+            results = requests.get(urlReq)
+        except Exception as e:
+            logging.info('Exception occured in telegram call : %s', str(e))
