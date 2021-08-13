@@ -280,15 +280,63 @@ class TradeManager:
         TradeManager.cancelTargetOrder(trade)
 
       elif trade.slOrder.orderStatus == OrderStatus.CANCELLED:
-        # SL order cancelled outside of algo (manually or by broker or by exchange)
-        logging.error('SL order %s for tradeID %s cancelled outside of Algo. Setting the trade as completed with exit price as current market price.', trade.slOrder.orderId, trade.tradeID)
         exit = TradeManager.symbolToCMPMap[trade.tradingSymbol]
-        TradeManager.setTradeToCompleted(trade, exit, TradeExitReason.SL_CANCELLED)
-        # Cancel target order if exists
-        TradeManager.cancelTargetOrder(trade)
+        errorString = "The order was cancelled by the exchange"
 
+        if trade.slOrder.message is not None and errorString in trade.slOrder.message:
+          message = "SL order {0} for tradeID {1} cancelled by exchange.".format(trade.slOrder.orderId, trade.tradeID)
+          Utils.sendMessageTelegramBot(message)
+          logging.info(message)
+          TradeManager.placeEmergencyExitOrder(trade)  # Placing market order to exit the trade
+          # TradeManager.checkAndUpdateMoveToCost(trade)  # If another leg is running move that to cost price
+        else:
+          # SL order cancelled outside of algo (manually or by broker or by exchange)
+          logging.error(
+            'SL order %s for tradeID %s cancelled outside of Algo. Setting the trade as completed with exit price as current market price.',
+            trade.slOrder.orderId, trade.tradeID)
+          TradeManager.setTradeToCompleted(trade, exit, TradeExitReason.SL_CANCELLED)
+          # Cancel target order if exists
+          TradeManager.cancelTargetOrder(trade)
+
+        # SL order cancelled outside of algo (manually or by broker or by exchange)
+        # logging.error('SL order %s for tradeID %s cancelled outside of Algo. Setting the trade as completed with exit price as current market price.', trade.slOrder.orderId, trade.tradeID)
+        # exit = TradeManager.symbolToCMPMap[trade.tradingSymbol]
+        # TradeManager.setTradeToCompleted(trade, exit, TradeExitReason.SL_CANCELLED)
+        # # Cancel target order if exists
+        # TradeManager.cancelTargetOrder(trade)
       else:
         TradeManager.checkAndUpdateTrailSL(trade)
+
+  @staticmethod
+  def placeEmergencyExitOrder(trade):
+    logging.info("TradeManager: Placing emergency exit order as SL order was cancelled by exchange")
+    oip = OrderInputParams(trade.tradingSymbol)
+    oip.direction = Direction.SHORT if trade.direction == Direction.LONG else Direction.LONG
+    oip.productType = trade.productType
+    oip.orderType = OrderType.MARKET
+    oip.qty = trade.qty
+    if trade.isFutures == True or trade.isOptions == True:
+      oip.isFnO = True
+    attempts = 0
+    # Five Times attempt to square off with 5 secs interval...
+    while attempts < 5:
+      try:
+        # SL order cancelled by broker and forcefully exited the position by market order
+        trade.emergencyExitOrder = TradeManager.getOrderManager().placeOrder(oip)
+        logging.error(
+          'SL order %s for tradeID %s cancelled by Broker. Setting the trade as completed with exit price as current market price.',
+          trade.slOrder.orderId, trade.tradeID)
+        TradeManager.setTradeToCompleted(trade, exit, TradeExitReason.SLB_CANCELLED)
+        # Cancel target order if exists
+        TradeManager.cancelTargetOrder(trade)
+        break
+      except Exception as e:
+        attempts += 1
+        message = "TradeManager: Failed to place emergency exit order for tradeID {0}: Error => {1}".format(
+          trade.tradeID, str(e))
+        Utils.sendMessageTelegramBot(message)
+        logging.error(message)
+        time.sleep(5)
 
   @staticmethod
   def getStrategyPNL(strategy):

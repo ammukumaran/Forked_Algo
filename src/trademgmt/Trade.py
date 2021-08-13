@@ -27,6 +27,7 @@ class Trade:
     self.strategyTSL = False
     self.strategyTSLenable = False
     self.strategyExit = False
+    self.strategyLeg = 0
 
     self.requestedEntry = 0  # Requested entry
     self.entry = 0  # Actual entry. This will be different from requestedEntry if the order placed is Market order
@@ -40,17 +41,18 @@ class Trade:
     self.tradeState = TradeState.CREATED # state of the trade
     self.timestamp = None # Set this timestamp to strategy timestamp if you are not sure what to set
     self.createTimestamp = Utils.getEpoch() # Timestamp when the trade is created (Not triggered)
-    self.startTimestamp = None # Timestamp when the trade gets triggered and order placed
-    self.endTimestamp = None # Timestamp when the trade ended
-    self.pnl = 0 # Profit loss of the trade. If trade is Active this shows the unrealized pnl else realized pnl
-    self.pnlPercentage = 0 # Profit Loss in percentage terms
-    self.exit = 0 # Exit price of the trade
-    self.exitReason = None # SL/Target/SquareOff/Any Other
-    self.tsl=0
-    
-    self.entryOrder = None # Object of Type ordermgmt.Order
-    self.slOrder = None # Object of Type ordermgmt.Order
-    self.targetOrder = None # Object of Type ordermgmt.Order
+    self.startTimestamp = None  # Timestamp when the trade gets triggered and order placed
+    self.endTimestamp = None  # Timestamp when the trade ended
+    self.pnl = 0  # Profit loss of the trade. If trade is Active this shows the unrealized pnl else realized pnl
+    self.pnlPercentage = 0  # Profit Loss in percentage terms
+    self.exit = 0  # Exit price of the trade
+    self.exitReason = None  # SL/Target/SquareOff/Any Other
+    self.tsl = 0
+
+    self.entryOrder = None  # Object of Type ordermgmt.Order
+    self.slOrder = None  # Object of Type ordermgmt.Order
+    self.targetOrder = None  # Object of Type ordermgmt.Order
+    self.emergencyExitOrder = None  # Object of Type ordermgmt.Order
 
   def equals(self, trade): # compares to trade objects and returns True if equals
     if trade == None:

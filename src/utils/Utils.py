@@ -295,7 +295,7 @@ class Utils:
                 soup = BeautifulSoup(html_file.read(), features='html.parser')
                 soup.table.replace_with(body);
                 soup.table.replace_with(body1);
-                soup.table.replace_with(body2);
+                # soup.table.replace_with(body2);
                 # Store prettified version of modified html
                 new_text = soup.prettify(formatter=None)
 

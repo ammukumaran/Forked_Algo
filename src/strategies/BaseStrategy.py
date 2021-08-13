@@ -22,17 +22,18 @@ class BaseStrategy:
     self.squareOffTimestamp = None # Square off time
     self.capital = 10000 # Capital to trade (This is the margin you allocate from your broker account for this strategy)
     self.leverage = 1 # 2x, 3x Etc
-    self.maxTradesPerDay = 1 # Max number of trades per day under this strategy
-    self.isFnO = False # Does this strategy trade in FnO or not
-    self.capitalPerSet = 0 # Applicable if isFnO is True (Set means 1CE/1PE or 2CE/2PE etc based on your strategy logic)
+    self.maxTradesPerDay = 1  # Max number of trades per day under this strategy
+    self.isFnO = False  # Does this strategy trade in FnO or not
+    self.capitalPerSet = 0  # Applicable if isFnO is True (Set means 1CE/1PE or 2CE/2PE etc based on your strategy logic)
 
     self.strategyTSL = False
     self.strategySL = 0
     self.strategyTGT = 0
     self.strategyTGTlock = 0
-    self.strategyTrailPLInc=0
-    self.strategyTrailPLstep=0
-    self.strategyExit=False
+    self.strategyTrailPLInc = 0
+    self.strategyTrailPLstep = 0
+    self.strategyExit = False
+    self.strategyLeg = 0
 
     # Register strategy with trade manager
     TradeManager.registerStrategy(self)

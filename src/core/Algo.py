@@ -3,7 +3,7 @@ import threading
 import time
 
 from instruments.Instruments import Instruments
-from strategies.MyStraddleStrangle import ShortStraddleStrangleBNF
+from strategies.MyStraddleStrangleHedge import ShortStraddleStrangleBNFhedge
 from trademgmt.TradeManager import TradeManager
 
 
@@ -29,11 +29,12 @@ class Algo:
     time.sleep(2)
 
     # start running strategies: Run each strategy in a separate thread
-    #threading.Thread(target=SampleStrategy.getInstance().run).start()
-    #threading.Thread(target=BNFORB30Min.getInstance().run).start()
-    #threading.Thread(target=OptionSelling.getInstance().run).start()
-    threading.Thread(target=ShortStraddleStrangleBNF.getInstance().run).start()
+    # threading.Thread(target=SampleStrategy.getInstance().run).start()
+    # threading.Thread(target=BNFORB30Min.getInstance().run).start()
+    # threading.Thread(target=OptionSelling.getInstance().run).start()
+    # threading.Thread(target=ShortStraddleStrangleBNF.getInstance().run).start()
+    threading.Thread(target=ShortStraddleStrangleBNFhedge.getInstance().run).start()
     # threading.Thread(target=indexTicker.run).start()
-    
+
     Algo.isAlgoRunning = True
     logging.info("Algo started.")

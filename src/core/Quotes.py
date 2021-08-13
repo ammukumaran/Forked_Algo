@@ -1,5 +1,7 @@
 from core.Controller import Controller
+from models.Hedge import HedgeBuying
 from models.Quote import Quote
+
 
 class Quotes:
   @staticmethod
@@ -60,3 +62,20 @@ class Quotes:
       # The logic may be different for other brokers
       quote = None
     return quote
+
+  @staticmethod
+  def getOptionHedgingQuote(tradingSymbol, isFnO):
+    quote = Quotes.getQuote(tradingSymbol, isFnO)
+    if quote:
+      # convert quote to Option buying details
+      hedgeBuying = HedgeBuying(tradingSymbol)
+      hedgeBuying.lastTradedPrice = quote.lastTradedPrice
+      hedgeBuying.high = quote.high
+      hedgeBuying.low = quote.low
+      hedgeBuying.entryPrice = (quote.low * 1.8)
+      hedgeBuying.stopLoss = (quote.low * 1.8) - 20
+      hedgeBuying.target = (quote.low * 1.8) + 40
+      hedgeBuying.isTradeLive = False
+    else:
+      hedgeBuying = None
+    return hedgeBuying
