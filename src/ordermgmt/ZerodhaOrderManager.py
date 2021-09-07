@@ -1,14 +1,13 @@
 import logging
 
-from ordermgmt.BaseOrderManager import BaseOrderManager
-from ordermgmt.Order import Order
-
-from models.ProductType import ProductType
-from models.OrderType import OrderType
 from models.Direction import Direction
 from models.OrderStatus import OrderStatus
-
+from models.OrderType import OrderType
+from models.ProductType import ProductType
+from ordermgmt.BaseOrderManager import BaseOrderManager
+from ordermgmt.Order import Order
 from utils.Utils import Utils
+
 
 class ZerodhaOrderManager(BaseOrderManager):
   def __init__(self):
@@ -27,7 +26,8 @@ class ZerodhaOrderManager(BaseOrderManager):
         price=orderInputParams.price,
         trigger_price=orderInputParams.triggerPrice,
         product=self.convertToBrokerProductType(orderInputParams.productType),
-        order_type=self.convertToBrokerOrderType(orderInputParams.orderType))
+        order_type=self.convertToBrokerOrderType(orderInputParams.orderType),
+        tag=orderInputParams.tag)
 
       logging.info('%s: Order placed successfully, orderId = %s', self.broker, orderId)
       order = Order(orderInputParams)
@@ -116,7 +116,7 @@ class ZerodhaOrderManager(BaseOrderManager):
         foundOrder.orderStatus = bOrder['status']
         if foundOrder.orderStatus == OrderStatus.CANCELLED and foundOrder.filledQty > 0:
           # Consider this case as completed in our system as we cancel the order with pending qty when strategy stop timestamp reaches
-          foundOrder.orderStatus = OrderStatus.COMPLETED
+          foundOrder.orderStatus = OrderStatus.COMPLETE
         foundOrder.price = bOrder['price']
         foundOrder.triggerPrice = bOrder['trigger_price']
         foundOrder.averagePrice = bOrder['average_price']

@@ -54,7 +54,9 @@ class Trade:
     self.targetOrder = None  # Object of Type ordermgmt.Order
     self.emergencyExitOrder = None  # Object of Type ordermgmt.Order
 
-  def equals(self, trade): # compares to trade objects and returns True if equals
+    self.tag = None
+
+  def equals(self, trade):  # compares to trade objects and returns True if equals
     if trade == None:
       return False
     if self.tradeID == trade.tradeID:
@@ -62,7 +64,7 @@ class Trade:
     if self.tradingSymbol != trade.tradingSymbol:
       return False
     if self.strategy != trade.strategy:
-      return False  
+      return False
     if self.direction != trade.direction:
       return False
     if self.productType != trade.productType:

@@ -52,6 +52,8 @@ class ShortStraddleStrangleBNFhedge(BaseStrategy):
         self.strategyTrailPLstep = 200
         self.strategyExit = False
 
+        self.tag = "MyStradStragHedge"
+
     def canTradeToday(self):
         # Even if you remove this function canTradeToday() completely its same as allowing trade every day
         return True
@@ -176,6 +178,7 @@ class ShortStraddleStrangleBNFhedge(BaseStrategy):
         trade.strategyTrailPLInc = self.strategyTrailPLInc
         trade.strategyTrailPLstep = self.strategyTrailPLstep
         trade.strategyExit = self.strategyExit
+        trade.tag = self.tag
 
         trade.timestamp = Utils.getEpoch(self.startTimestamp)  # setting this to strategy timestamp
 
@@ -197,6 +200,7 @@ class ShortStraddleStrangleBNFhedge(BaseStrategy):
         trade.productType = self.productType
         trade.placeMarketOrder = True
         trade.requestedEntry = lastTradedPrice
+        trade.tag = self.tag
 
         # no Strategy TSL
         # trade.strategyTSL = self.strategyTSL

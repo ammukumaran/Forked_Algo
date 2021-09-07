@@ -1,19 +1,20 @@
-
-from models.Segment import Segment
 from models.ProductType import ProductType
+from models.Segment import Segment
+
 
 class OrderInputParams:
   def __init__(self, tradingSymbol):
-    self.exchange = "NSE" # default
+    self.exchange = "NSE"  # default
     self.isFnO = False
-    self.segment = Segment.EQUITY # default
-    self.productType = ProductType.MIS # default
+    self.segment = Segment.EQUITY  # default
+    self.productType = ProductType.MIS  # default
     self.tradingSymbol = tradingSymbol
     self.direction = ""
-    self.orderType = "" # One of the values of ordermgmt.OrderType
+    self.orderType = ""  # One of the values of ordermgmt.OrderType
     self.qty = 0
     self.price = 0
-    self.triggerPrice = 0 # Applicable in case of SL order
+    self.triggerPrice = 0  # Applicable in case of SL order
+    self.tag = None
 
   def __str__(self):
     return "symbol=" + str(self.tradingSymbol) + ", exchange=" + self.exchange \

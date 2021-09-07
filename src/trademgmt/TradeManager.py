@@ -204,6 +204,7 @@ class TradeManager:
     oip.orderType = OrderType.MARKET if trade.placeMarketOrder == True else OrderType.LIMIT
     oip.price = trade.requestedEntry
     oip.qty = trade.qty
+    oip.tag = trade.tag
     if trade.isFutures == True or trade.isOptions == True:
       oip.isFnO = True
     try:
@@ -315,6 +316,7 @@ class TradeManager:
     oip.productType = trade.productType
     oip.orderType = OrderType.MARKET
     oip.qty = trade.qty
+    oip.tag = trade.tag
     if trade.isFutures == True or trade.isOptions == True:
       oip.isFnO = True
     attempts = 0
@@ -421,6 +423,7 @@ class TradeManager:
     oip.orderType = OrderType.SL_MARKET
     oip.triggerPrice = trade.stopLoss
     oip.qty = trade.qty
+    oip.tag = trade.tag
     if trade.isFutures == True or trade.isOptions == True:
       oip.isFnO = True
     try:
@@ -439,6 +442,7 @@ class TradeManager:
     oip.orderType = OrderType.MARKET if isMarketOrder == True else OrderType.LIMIT
     oip.price = 0 if isMarketOrder == True else trade.target
     oip.qty = trade.qty
+    oip.tag = trade.tag
     if trade.isFutures == True or trade.isOptions == True:
       oip.isFnO = True
     try:
